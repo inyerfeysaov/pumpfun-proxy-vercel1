@@ -1,38 +1,34 @@
-export const config = {
-  runtime: "edge",
-};
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
 
-export default async function handler(request) {
-  const url = "https://gql.pump.fun/graphql";
-
-  const body = await request.text();
+  const gqlEndpoint = 'https://gql.pump.fun/graphql';
 
   try {
-    const response = await fetch(url, {
-      method: "POST",
+    const gqlResponse = await fetch(gqlEndpoint, {
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       },
-      body,
+      body: JSON.stringify(req.body)
     });
 
-    const text = await response.text();
+    const data = await gqlResponse.json();
 
-    return new Response(text, {
-      status: response.status,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-      },
-    });
+    if (!gqlResponse.ok) {
+      return res.status(gqlResponse.status).json({
+        error: 'Pump.fun error',
+        message: data.error || 'Something went wrong',
+      });
+    }
+
+    return res.status(200).json(data);
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: "Proxy error", message: err.message }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    return res.status(500).json({
+      error: 'Proxy error',
+      message: err.message || 'internal error',
+    });
   }
 }
